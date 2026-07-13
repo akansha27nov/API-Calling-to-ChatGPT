@@ -1,12 +1,12 @@
-from datasets import load_dataset
-import pandas as pd
-from pathlib import Path
+import os
+import json
 import base64
+import pandas as pd
+from datasets import load_dataset
+from pathlib import Path
 from io import BytesIO
 from openai import OpenAI
 from dotenv import load_dotenv
-import os
-import json
 
 # ======================================================
 # Step 1: Initialize client with open ai key
@@ -217,12 +217,8 @@ for index, row in products_df.iterrows():
             with open(output_file, "w") as f:
                 json.dump(all_results, f, indent=4)
         
-        # Optional: Short pause to respect API rate limits
-        # time.sleep(1) 
-        
     except Exception as e:
         print(f"⚠ Error processing index {index}: {e}")
-        # We 'continue' so the loop doesn't stop
         continue
 
 print(f"\n✓ Batch complete! Results saved to {output_file}")
