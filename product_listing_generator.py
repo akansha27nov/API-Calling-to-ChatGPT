@@ -17,16 +17,30 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # ======================================================
 # Step 2: Preparing the Dataset
 # =======================================================
+
+DATA_DIR = Path("data")
+# Create images directory
+images_dir = DATA_DIR / "product_images"
+images_dir.mkdir(parents=True, exist_ok=True)
+
 # Load dataset from HuggingFace
 print("Loading product dataset...")
 try:
     # Try loading the dataset
-    dataset = load_dataset("ashraq/fashion-product-images-small", split="train[:5]")
+    dataset = load_dataset("ashraq/fashion-product-images-small", split="train[:10]")
     print(f"✓ Loaded {len(dataset)} products")
     print(dataset)
-    # print(dataset[0]['image'].show()) # show first example image
+    # print(dataset[0]['image'].show()) # show first sample image
     products_df = pd.DataFrame(dataset)
     print(f"Dataset columns: {products_df.columns.to_list()}")
+    
+    # save image files locally from dataset
+    print("Processing and saving images to avoid reading dataset all the time...")
+    for i, item in enumerate(dataset):
+        img = item["image"]
+        img.save(f"{images_dir}/{i}.jpg")
+        if i >= 100:
+            break
     
 except Exception as e:
     print(f"⚠ Could not load HuggingFace dataset: {e}")
@@ -45,11 +59,6 @@ except Exception as e:
     ]
     
     products_df = pd.DataFrame(products_data)
-
-DATA_DIR = Path("data")
-# Create images directory
-images_dir = DATA_DIR / "product_images"
-images_dir.mkdir(parents=True, exist_ok=True)
  
 print(f"\n✓ Dataset prepared!")
 print(f"Total products: {len(products_df)}")
@@ -69,9 +78,6 @@ def encode_image_to_base64(image_path):
     image_path.save(buffered, format="JPEG")
     # get the raw bytes from the buffer and encode them
     encoded = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    
-    """with open(image_path, "rb") as img_file:
-        encoded = base64.b64encode(img_file.read()).decode("utf-8") """
     return encoded 
 
 # Example usage
