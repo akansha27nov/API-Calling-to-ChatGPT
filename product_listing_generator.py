@@ -186,3 +186,48 @@ product_json = generate_product_listing(encoded_img, listing_prompt)
 if product_json:
     print("✓ Successfully generated listing:")
     print(json.dumps(product_json, indent=2))
+
+# =======================================================
+# Step 6: Processing Multiple Products
+# =======================================================
+
+output_file = DATA_DIR / "processed_listings.json"
+all_results = []
+
+print(f"Starting batch processing for {len(products_df)} products...")
+for index, row in products_df.iterrows():
+    try:
+        print(f"[{index + 1}/{len(products_df)}] Processing: {row.get('productDisplayName', 'Unknown')}")
+        
+        # encode image
+        encoded_img = encode_image_to_base64(row["image"])
+        
+        # create prompt
+        prompt = create_product_listing_prompt(row)
+        
+        # call open API
+        result = generate_product_listing(encoded_img, prompt)
+        
+        # save result
+        if result:
+            result["product_id"] = row.get("id") # Keep track of which product this is
+            all_results.append(result)
+            
+            # Save progress incrementally to disk
+            with open(output_file, "w") as f:
+                json.dump(all_results, f, indent=4)
+        
+        # Optional: Short pause to respect API rate limits
+        # time.sleep(1) 
+        
+    except Exception as e:
+        print(f"⚠ Error processing index {index}: {e}")
+        # We 'continue' so the loop doesn't stop
+        continue
+
+print(f"\n✓ Batch complete! Results saved to {output_file}")
+
+print("\n" + "="*50)
+print("BATCH PROCESSING SUMMARY")
+print("="*50)
+print(f"Total products processed: {len(all_results)}")
