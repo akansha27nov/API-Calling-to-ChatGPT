@@ -3,7 +3,20 @@ import pandas as pd
 from pathlib import Path
 import base64
 from io import BytesIO
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+import json
 
+# ======================================================
+# Step 1: Initialize client with open ai key
+# =======================================================
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# ======================================================
+# Step 2: Preparing the Dataset
+# =======================================================
 # Load dataset from HuggingFace
 print("Loading product dataset...")
 try:
@@ -41,6 +54,10 @@ images_dir.mkdir(parents=True, exist_ok=True)
 print(f"\n✓ Dataset prepared!")
 print(f"Total products: {len(products_df)}")
 
+# ======================================================
+# Step 3: Encoding Images for API
+# =======================================================
+
 def encode_image_to_base64(image_path):
     """Encode an image file to base64 string."""
     # following steps are needed to save jpeg file otherwise: 
@@ -63,7 +80,9 @@ encoded_image = encode_image_to_base64(sample_path)
 print(f"Encoded image length: {len(encoded_image)} characters")
 print(f"Encoded prefix: {encoded_image[:40]}...")
 
-# def create_product_listing_prompt(product_name, price, category, additional_info=None):
+# ======================================================
+# Step 4: Creating the Product Listing Prompt
+# =======================================================
 def create_product_listing_prompt(product):
     """
     Create a prompt for generating product listings.
@@ -119,3 +138,45 @@ prod_from_dataset = products_df.iloc[0]
 test_prompt = create_product_listing_prompt(prod_from_dataset)
 print(test_prompt[:500] + "...")  # Show first 500 characters
 
+# ======================================================
+# Step 5: Calling the ChatGPT API with Vision
+# =======================================================
+
+def generate_product_listing(encoded_image, prompt_txt):
+    """Sends image and prompt to OpenAI and parses JSON."""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": [
+                        {"type": "text", "text": prompt_txt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{encoded_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=500,
+            temperature=0.6,
+            response_format={"type": "json_object"}
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    
+    except Exception as e:
+        print(f"API Call Failed: {e}")
+        return None
+
+print("\n" + "="*50)
+print("TEST")
+print("="*50)
+encoded_img = encode_image_to_base64(products_df.iloc[0]["image"])
+listing_prompt = create_product_listing_prompt(products_df.iloc[0])
+product_json = generate_product_listing(encoded_img, listing_prompt)
+
+if product_json:
+    print("✓ Successfully generated listing:")
+    print(json.dumps(product_json, indent=2))
