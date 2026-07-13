@@ -1,3 +1,9 @@
+"""
+AI-Automated Product Listing Generation
+Author: Akansha Verma
+Description: Use ChatGPT's vision capabilities to generate compelling product listings automatically
+"""
+
 import os
 import json
 import base64
